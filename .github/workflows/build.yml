@@ -7,56 +7,61 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30  # Increased timeout
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3  # Updated to v3
+      uses: actions/checkout@v3
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '16'  # Consider updating to a more recent LTS version if possible
+        node-version: '16'
 
     - name: Install setuptools
       if: matrix.os == 'macos-latest'
       run: pip3 install setuptools
 
     - name: Install dependencies
-      run: |
-        npm install
+      run: npm install
 
     - name: Package and Build the Electron app
       run: |
         npm run package
         npm run make
 
-    - name: Archive the build
+    - name: Archive the build (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
       run: |
         mkdir artifacts
-        if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-          cp -R out/make/* artifacts/
-        elif [ "${{ matrix.os }}" == "windows-latest" ]; then
-          powershell Compress-Archive -Path out\make\* -DestinationPath artifacts\app-windows.zip
-        elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-          cp -R out/make/*.dmg artifacts/
-        fi
+        cp -R out/make/* artifacts/
+
+    - name: Archive the build (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        mkdir artifacts
+        powershell Compress-Archive -Path out\make\* -DestinationPath artifacts\app-windows.zip
+
+    - name: Archive the build (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        mkdir artifacts
+        cp -R out/make/*.dmg artifacts/
 
     - name: Upload the build artifacts
-      uses: actions/upload-artifact@v3  # Updated to v3
+      uses: actions/upload-artifact@v3
       with:
         name: build-${{ matrix.os }}
         path: artifacts
 
   release:
-    needs: build
     runs-on: ubuntu-latest
     steps:
     - name: Download all artifacts
-      uses: actions/download-artifact@v3  # Updated to v3
+      uses: actions/download-artifact@v3
       with:
         path: ./builds
 
