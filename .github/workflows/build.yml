@@ -1,33 +1,11 @@
 name: Build and Release Electron App
 
 on:
-  push:
-    branches:
-      - main  # or your default branch name
+  release:
+    types: [published]
 
 jobs:
-  check_version:
-    runs-on: ubuntu-latest
-    outputs:
-      should_release: ${{ steps.check.outputs.should_release }}
-      new_version: ${{ steps.check.outputs.new_version }}
-    steps:
-    - uses: actions/checkout@v3
-    - name: Check if version has changed
-      id: check
-      run: |
-        PACKAGE_VERSION=$(node -p "require('./package.json').version")
-        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-        if [ "v$PACKAGE_VERSION" != "$LATEST_TAG" ]; then
-          echo "::set-output name=should_release::true"
-          echo "::set-output name=new_version::v$PACKAGE_VERSION"
-        else
-          echo "::set-output name=should_release::false"
-        fi
-
   build:
-    needs: check_version
-    if: needs.check_version.outputs.should_release == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -84,8 +62,7 @@ jobs:
         path: quickutils-*.zip
 
   release:
-    needs: [check_version, build]
-    if: needs.check_version.outputs.should_release == 'true'
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -100,24 +77,18 @@ jobs:
       run: ls -R
       working-directory: ./artifacts
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
+    - name: Get release
+      id: get_release
+      uses: bruceadams/get-release@v1.3.2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ needs.check_version.outputs.new_version }}
-        release_name: Release ${{ needs.check_version.outputs.new_version }}
-        body_path: .github/release-notes.txt
-        draft: false
-        prerelease: false
 
     - name: Upload Release Asset (Ubuntu)
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
         asset_path: ./artifacts/build-ubuntu-latest/quickutils-linux.zip
         asset_name: quickutils-linux.zip
         asset_content_type: application/zip
@@ -127,7 +98,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
         asset_path: ./artifacts/build-windows-latest/quickutils-windows.zip
         asset_name: quickutils-windows.zip
         asset_content_type: application/zip
@@ -137,7 +108,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
         asset_path: ./artifacts/build-macos-latest/quickutils-macos.zip
         asset_name: quickutils-macos.zip
         asset_content_type: application/zip

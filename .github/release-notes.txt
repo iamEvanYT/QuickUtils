@@ -1,1 +1,0 @@
-**Full Changelog**: https://github.com/iamEvanYT/QuickUtils/compare/v1.0.0...v1.0.7
