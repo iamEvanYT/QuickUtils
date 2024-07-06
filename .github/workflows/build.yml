@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest] #, macos-latest]
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -95,12 +95,12 @@ jobs:
         asset_name: quickutils-windows.zip
         asset_content_type: application/zip
 
-    - name: Upload Release Asset (macOS)
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.get_release.outputs.upload_url }}
-        asset_path: ./artifacts/build-macos-latest/quickutils-macos.zip
-        asset_name: quickutils-macos.zip
-        asset_content_type: application/zip
+    #- name: Upload Release Asset (macOS)
+    #  uses: actions/upload-release-asset@v1
+    #  env:
+    #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #  with:
+    #    upload_url: ${{ steps.get_release.outputs.upload_url }}
+    #    asset_path: ./artifacts/build-macos-latest/quickutils-macos.zip
+    #    asset_name: quickutils-macos.zip
+    #    asset_content_type: application/zip
