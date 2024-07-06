@@ -23,8 +23,11 @@ jobs:
 
     - name: Install dependencies
       run: |
-        npm ci
-        npm run rebuild  # Add this if you have native dependencies
+        npm install
+
+    - name: Install setuptools
+      if: matrix.os == 'macos-latest'
+      run: pip3 install setuptools
 
     - name: Package and Build the Electron app
       run: |
