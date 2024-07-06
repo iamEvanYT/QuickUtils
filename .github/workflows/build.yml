@@ -57,19 +57,26 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - name: Download all artifacts
-      uses: actions/download-artifact@v3
-      with:
-        path: ./builds
-
-    - name: Prepare release assets
-      run: |
-        mkdir release_assets
-        find ./builds -type f -exec cp {} release_assets/ \;
-
-    - name: Edit release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: release_assets/*
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: ./artifacts
+  
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: ./artifacts
+  
+      - name: Prepare release assets
+        run: |
+          mkdir release_assets
+          find ./artifacts -type f -exec cp -v {} release_assets/ \;
+          ls -R release_assets
+  
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release_assets/*
+          tag_name: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
