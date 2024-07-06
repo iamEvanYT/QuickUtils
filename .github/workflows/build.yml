@@ -21,9 +21,10 @@ jobs:
       with:
         node-version: '16'
 
-    - name: Install setuptools
-      if: matrix.os == 'macos-latest'
-      run: pip3 install setuptools
+    - name: Install Python dependencies
+      uses: py-actions/py-dependency-install@v4
+      with:
+        path: "requirements.txt"
 
     - name: Install dependencies
       run: npm install
