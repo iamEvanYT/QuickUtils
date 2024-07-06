@@ -21,6 +21,10 @@ jobs:
       with:
         node-version: '16' # Specify the Node.js version you need
 
+    - name: Install setuptools
+      if: matrix.os == 'macos-latest'
+      run: pip3 install setuptools
+
     - name: Install dependencies
       run: npm install
 
