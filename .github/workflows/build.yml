@@ -21,10 +21,9 @@ jobs:
       with:
         node-version: '16'
 
-    - name: Install Python dependencies
-      uses: py-actions/py-dependency-install@v4
-      with:
-        path: "requirements.txt"
+    - name: Install Python
+      if: matrix.os == 'macos-latest'
+      run: apt-get install python3-distutils
 
     - name: Install dependencies
       run: npm install
