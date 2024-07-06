@@ -25,12 +25,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.x'
-        cache: 'pip'
-      
-    - name: Install Python setup tools
-      run: |
-        pip install setuptools
+        python-version: '3.11'
 
     - name: Install dependencies
       run: npm install
