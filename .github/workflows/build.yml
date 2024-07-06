@@ -37,29 +37,32 @@ jobs:
     - name: Archive the build (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: |
+        mkdir distributables
         cd out/make
-        zip -r ../../quickutils-linux.zip *
+        zip -r ../../distributables/quickutils-linux.zip *
         cd ../..
 
     - name: Archive the build (Windows)
       if: matrix.os == 'windows-latest'
       run: |
+        mkdir distributables
         cd out/make
-        powershell Compress-Archive -Path * -DestinationPath ../../quickutils-windows.zip
+        powershell Compress-Archive -Path * -DestinationPath ../../distributables/quickutils-windows.zip
         cd ../..
 
-    - name: Archive the build (macOS)
+    - name: Collect built distributables (macOS)
       if: matrix.os == 'macos-latest'
       run: |
+        mkdir distributables
         cd out/make
-        zip -r ../../quickutils-macos.zip *
+        cp * ../../distributables
         cd ../..
 
     - name: Upload the build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: build-${{ matrix.os }}
-        path: quickutils-*.zip
+        path: distributables/*
 
   release:
     needs: [build]
@@ -109,6 +112,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.get_release.outputs.upload_url }}
-        asset_path: ./artifacts/build-macos-latest/quickutils-macos.zip
-        asset_name: quickutils-macos.zip
-        asset_content_type: application/zip
+        asset_path: ./artifacts/build-macos-latest/QuickUtils-arm64.dmg
+        asset_name: quickutils-macos.dmg
+        asset_content_type: application/octet-stream

@@ -2,7 +2,7 @@
 const DEV_TOOLS_ENABLED = true
 
 // Code //
-const { app, protocol, net, BrowserWindow, ipcMain, Tray, Menu } = require('electron')
+const { app, protocol, net, BrowserWindow, ipcMain, Tray, Menu, screen } = require('electron')
 const path = require("node:path")
 const stayAwake = require("stay-awake")
 
@@ -31,43 +31,60 @@ const createTray = () => {
 
     const popoverWindow = createWindow();
 
+    const getTrayPosition = (bounds, display) => {
+        const trayXCenter = bounds.x + bounds.width / 2;
+        const trayYCenter = bounds.y + bounds.height / 2;
+
+        const topDist = trayYCenter;
+        const bottomDist = display.bounds.height - trayYCenter;
+        const leftDist = trayXCenter;
+        const rightDist = display.bounds.width - trayXCenter;
+
+        const minDist = Math.min(topDist, bottomDist, leftDist, rightDist);
+
+        if (minDist === topDist) return 'top';
+        if (minDist === bottomDist) return 'bottom';
+        if (minDist === leftDist) return 'left';
+        if (minDist === rightDist) return 'right';
+    };
+
+    const positionPopoverWindow = (window, trayBounds, trayPosition) => {
+        const { height, width } = window.getBounds();
+        let x, y;
+
+        switch (trayPosition) {
+            case 'top':
+                x = Math.round(trayBounds.x + (trayBounds.width / 2) - (width / 2));
+                y = Math.round(trayBounds.y + trayBounds.height);
+                break;
+            case 'bottom':
+                x = Math.round(trayBounds.x + (trayBounds.width / 2) - (width / 2));
+                y = Math.round(trayBounds.y - height);
+                break;
+            case 'left':
+                x = Math.round(trayBounds.x + trayBounds.width);
+                y = Math.round(trayBounds.y + (trayBounds.height / 2) - (height / 2));
+                break;
+            case 'right':
+                x = Math.round(trayBounds.x - width);
+                y = Math.round(trayBounds.y + (trayBounds.height / 2) - (height / 2));
+                break;
+        }
+
+        window.setBounds({ x, y, width, height });
+    };
+
     const toggleWindow = (bounds) => {
         var bounds = bounds ?? tray.getBounds()
 
         if (popoverWindow.isVisible()) {
             popoverWindow.hide();
         } else {
-            const { x, y } = bounds;
-            const { height, width } = popoverWindow.getBounds();
-            const primaryDisplay = screen.getPrimaryDisplay();
-            const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+            var bounds = bounds ?? tray.getBounds();
+            const display = screen.getDisplayMatching(bounds);
 
-            let popoverPosX, popoverPosY;
-
-            if (y < screenHeight / 2) {
-                // Tray is on the top or bottom
-                if (x < screenWidth / 2) {
-                    // Tray is on the left
-                    popoverPosX = x;
-                    popoverPosY = y < screenHeight / 2 ? y + height : y - height;
-                } else {
-                    // Tray is on the right
-                    popoverPosX = x - width;
-                    popoverPosY = y < screenHeight / 2 ? y + height : y - height;
-                }
-            } else {
-                // Tray is on the bottom
-                popoverPosX = x - width / 2;
-                popoverPosY = y - height;
-            }
-
-            // Position the popover window near the tray icon
-            popoverWindow.setBounds({
-                x: popoverPosX,
-                y: popoverPosY,
-                width: width,
-                height: height
-            });
+            const trayPosition = getTrayPosition(bounds, display);
+            positionPopoverWindow(popoverWindow, bounds, trayPosition);
 
             popoverWindow.show();
         }
@@ -118,3 +135,7 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 })
+
+if (require('electron-squirrel-startup')) {
+    app.quit()
+}

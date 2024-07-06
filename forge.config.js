@@ -8,14 +8,22 @@ module.exports = {
   },
   rebuildConfig: {},
   makers: [
+    // Windows (exe)
     {
       name: '@electron-forge/maker-squirrel',
       config: {},
     },
+
+    // Mac (dmg)
     {
-      name: '@electron-forge/maker-zip',
-      platforms: ['darwin'],
+      name: '@electron-forge/maker-dmg',
+      config: (arch) => ({
+        "name": `QuickUtils-${arch}`,
+        "icon": 'icons/macos/AppIcon.icns',
+      })
     },
+    
+    // Linux
     {
       name: '@electron-forge/maker-deb',
       config: {},
