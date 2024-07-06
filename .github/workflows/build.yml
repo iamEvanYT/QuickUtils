@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest] #, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -32,26 +32,29 @@ jobs:
     - name: Archive the build (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        mkdir artifacts
-        cp -R out/make/* artifacts/
+        cd out/make
+        zip -r ../../quickutils-linux.zip *
+        cd ../..
 
     - name: Archive the build (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        mkdir artifacts
-        powershell Compress-Archive -Path out\make\* -DestinationPath artifacts\app-windows.zip
+        cd out/make
+        powershell Compress-Archive -Path * -DestinationPath ../../quickutils-windows.zip
+        cd ../..
 
     - name: Archive the build (macOS)
       if: matrix.os == 'macos-latest'
       run: |
-        mkdir artifacts
-        cp -R out/make/*.dmg artifacts/
+        cd out/make
+        zip -r ../../quickutils-macos.zip *
+        cd ../..
 
     - name: Upload the build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: build-${{ matrix.os }}
-        path: artifacts
+        path: quickutils-*.zip
 
   release:
     needs: build
@@ -78,26 +81,26 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.get_release.outputs.upload_url }}
-        asset_path: ./artifacts/build-ubuntu-latest/your-app-name.deb
-        asset_name: your-app-name-linux.deb
-        asset_content_type: application/vnd.debian.binary-package
+        asset_path: ./artifacts/build-ubuntu-latest/quickutils-linux.zip
+        asset_name: quickutils-linux.zip
+        asset_content_type: application/zip
 
-    # - name: Upload Release Asset (Windows)
-    #   uses: actions/upload-release-asset@v1
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   with:
-    #     upload_url: ${{ steps.get_release.outputs.upload_url }}
-    #     asset_path: ./artifacts/build-windows-latest/app-windows.zip
-    #     asset_name: your-app-name-windows.zip
-    #     asset_content_type: application/zip
+    - name: Upload Release Asset (Windows)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        asset_path: ./artifacts/build-windows-latest/quickutils-windows.zip
+        asset_name: quickutils-windows.zip
+        asset_content_type: application/zip
 
-    # - name: Upload Release Asset (macOS)
-    #   uses: actions/upload-release-asset@v1
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   with:
-    #     upload_url: ${{ steps.get_release.outputs.upload_url }}
-    #     asset_path: ./artifacts/build-macos-latest/your-app-name.dmg
-    #     asset_name: your-app-name-macos.dmg
-    #     asset_content_type: application/x-apple-diskimage
+    - name: Upload Release Asset (macOS)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        asset_path: ./artifacts/build-macos-latest/quickutils-macos.zip
+        asset_name: quickutils-macos.zip
+        asset_content_type: application/zip
