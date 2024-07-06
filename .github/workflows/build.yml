@@ -1,31 +1,66 @@
-name: Build/release
+name: Build and Release Electron App
 
-on: push
+on:
+  release:
+    types: [published]
 
 jobs:
-  release:
+  build:
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v1
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v1
-        with:
-          node-version: 16
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16' # Specify the Node.js version you need
 
-      - name: Build/release Electron app
-        uses: wenwuwu/action-electron-forge@v1.4.0
-        with:
-          # GitHub token, automatically provided to the action
-          # (No need to define this secret in the repo settings)
-          github_token: ${{ secrets.github_token }}
+    - name: Install dependencies
+      run: npm install
 
-          # If the commit is tagged with a version (e.g. "v1.0.0"),
-          # release the app after building
-          release: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    - name: Build the Electron app
+      run: npm run build
+
+    - name: Package the Electron app
+      run: npm run package
+
+    - name: Archive the build
+      if: runner.os == 'Linux'
+      run: zip -r app-linux.zip ./dist
+      if: runner.os == 'Windows'
+      run: Compress-Archive -Path ./dist/* -DestinationPath app-windows.zip
+      if: runner.os == 'macOS'
+      run: zip -r app-macos.zip ./dist
+
+    - name: Upload the build artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: build-${{ runner.os }}
+        path: |
+          app-linux.zip
+          app-windows.zip
+          app-macos.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download the build artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: build-${{ matrix.os }}
+        path: ./builds
+
+    - name: Edit release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./builds/app-linux.zip
+          ./builds/app-windows.zip
+          ./builds/app-macos.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
