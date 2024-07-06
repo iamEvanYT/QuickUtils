@@ -36,15 +36,15 @@ jobs:
 
     - name: Archive the build on Ubuntu
       if: matrix.os == 'ubuntu-latest'
-      run: cp ./out/make/zip ./app-linux.zip
+      run: cp out/make/zip app-linux.zip
 
     - name: Archive the build on Windows
       if: matrix.os == 'windows-latest'
-      run: cp ./out/make/zip ./app-windows.zip
+      run: cp out/make/zip app-windows.zip
 
     - name: Archive the build on macOS
       if: matrix.os == 'macos-latest'
-      run: cp ./out/make/zip ./app-macos.zip
+      run: cp out/make/zip app-macos.zip
 
     - name: Upload the build artifacts
       uses: actions/upload-artifact@v2
