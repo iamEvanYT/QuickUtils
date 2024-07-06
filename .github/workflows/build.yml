@@ -2,7 +2,7 @@ name: Build and Release Electron App
 
 on:
   release:
-    types: [published]
+    types: [created]
 
 jobs:
   build:
@@ -19,12 +19,12 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '16'
+        node-version: '21'
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
+        python-version: '3.9'
 
     - name: Install dependencies
       run: npm install
