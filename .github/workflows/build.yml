@@ -1,8 +1,9 @@
 name: Build and Release Electron App
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -11,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest] #, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -20,6 +21,11 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '16'
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
 
     - name: Install dependencies
       run: npm install
@@ -60,6 +66,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
     - name: Download all artifacts
       uses: actions/download-artifact@v3
       with:
@@ -69,18 +78,24 @@ jobs:
       run: ls -R
       working-directory: ./artifacts
 
-    - name: Get release
-      id: get_release
-      uses: bruceadams/get-release@v1.3.2
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body_path: .github/release-notes.txt
+        draft: false
+        prerelease: false
 
     - name: Upload Release Asset (Ubuntu)
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./artifacts/build-ubuntu-latest/quickutils-linux.zip
         asset_name: quickutils-linux.zip
         asset_content_type: application/zip
@@ -90,17 +105,17 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./artifacts/build-windows-latest/quickutils-windows.zip
         asset_name: quickutils-windows.zip
         asset_content_type: application/zip
 
-    #- name: Upload Release Asset (macOS)
-    #  uses: actions/upload-release-asset@v1
-    #  env:
-    #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #  with:
-    #    upload_url: ${{ steps.get_release.outputs.upload_url }}
-    #    asset_path: ./artifacts/build-macos-latest/quickutils-macos.zip
-    #    asset_name: quickutils-macos.zip
-    #    asset_content_type: application/zip
+    - name: Upload Release Asset (macOS)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/build-macos-latest/quickutils-macos.zip
+        asset_name: quickutils-macos.zip
+        asset_content_type: application/zip
