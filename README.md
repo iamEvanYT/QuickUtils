@@ -1,4 +1,4 @@
-# macutilities
+# QuickUtils
 
 To install dependencies:
 
@@ -9,7 +9,7 @@ bun install
 To run:
 
 ```bash
-bun run index.js
+bun run start
 ```
 
-This project was created using `bun init` in bun v1.1.17. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+This project is an Electron app, can be built using Electron Forge.
