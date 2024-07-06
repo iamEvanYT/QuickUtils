@@ -23,7 +23,7 @@ jobs:
       run: npm install
 
     - name: Build the Electron app
-      run: npm run build
+      run: npm run make
 
     - name: Package the Electron app
       run: npm run package
