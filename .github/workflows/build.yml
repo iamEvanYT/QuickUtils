@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest] #, macos-latest]
+        os: [ubuntu-latest] #, windows-latest, macos-latest]
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -57,26 +57,47 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
-        with:
-          path: ./artifacts
-  
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: ./artifacts
-  
-      - name: Prepare release assets
-        run: |
-          mkdir release_assets
-          find ./artifacts -type f -exec cp -v {} release_assets/ \;
-          ls -R release_assets
-  
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          files: release_assets/*
-          tag_name: ${{ github.ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: false
-          prerelease: false
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: ./artifacts
+
+    - name: Display structure of downloaded files
+      run: ls -R
+      working-directory: ./artifacts
+
+    - name: Get release
+      id: get_release
+      uses: bruceadams/get-release@v1.3.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Release Asset (Ubuntu)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        asset_path: ./artifacts/build-ubuntu-latest/your-app-name.deb
+        asset_name: your-app-name-linux.deb
+        asset_content_type: application/vnd.debian.binary-package
+
+    # - name: Upload Release Asset (Windows)
+    #   uses: actions/upload-release-asset@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     upload_url: ${{ steps.get_release.outputs.upload_url }}
+    #     asset_path: ./artifacts/build-windows-latest/app-windows.zip
+    #     asset_name: your-app-name-windows.zip
+    #     asset_content_type: application/zip
+
+    # - name: Upload Release Asset (macOS)
+    #   uses: actions/upload-release-asset@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     upload_url: ${{ steps.get_release.outputs.upload_url }}
+    #     asset_path: ./artifacts/build-macos-latest/your-app-name.dmg
+    #     asset_name: your-app-name-macos.dmg
+    #     asset_content_type: application/x-apple-diskimage
