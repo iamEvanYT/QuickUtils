@@ -21,13 +21,13 @@ jobs:
       with:
         node-version: '16'  # Consider updating to a more recent LTS version if possible
 
-    - name: Install dependencies
-      run: |
-        npm install
-
     - name: Install setuptools
       if: matrix.os == 'macos-latest'
       run: pip3 install setuptools
+
+    - name: Install dependencies
+      run: |
+        npm install
 
     - name: Package and Build the Electron app
       run: |
