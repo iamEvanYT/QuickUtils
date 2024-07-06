@@ -39,11 +39,32 @@ const createTray = () => {
         } else {
             const { x, y } = bounds;
             const { height, width } = popoverWindow.getBounds();
+            const primaryDisplay = screen.getPrimaryDisplay();
+            const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+
+            let popoverPosX, popoverPosY;
+
+            if (y < screenHeight / 2) {
+                // Tray is on the top or bottom
+                if (x < screenWidth / 2) {
+                    // Tray is on the left
+                    popoverPosX = x;
+                    popoverPosY = y < screenHeight / 2 ? y + height : y - height;
+                } else {
+                    // Tray is on the right
+                    popoverPosX = x - width;
+                    popoverPosY = y < screenHeight / 2 ? y + height : y - height;
+                }
+            } else {
+                // Tray is on the bottom
+                popoverPosX = x - width / 2;
+                popoverPosY = y - height;
+            }
 
             // Position the popover window near the tray icon
             popoverWindow.setBounds({
-                x: Math.round(x - width / 2),
-                y: Math.round(y),
+                x: popoverPosX,
+                y: popoverPosY,
                 width: width,
                 height: height
             });
