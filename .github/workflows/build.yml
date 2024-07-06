@@ -58,6 +58,7 @@ jobs:
         path: artifacts
 
   release:
+    needs: build
     runs-on: ubuntu-latest
     steps:
     - name: Download all artifacts
