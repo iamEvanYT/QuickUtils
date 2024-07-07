@@ -1,24 +1,40 @@
 // Config //
 const DEV_TOOLS_ENABLED = true
+const SCREEN_PADDING = 10 // Padding from screen edges (except the tray side)
+
+const MAX_POPOVER_SCREEN_RATIO_WIDTH = 0.25 // Maximum ratio of screen size for popover
+const MAX_POPOVER_SCREEN_RATIO_HEIGHT = 0.5 // Maximum ratio of screen size for popover
 
 // Code //
 const { app, protocol, net, BrowserWindow, ipcMain, Tray, Menu, screen } = require('electron')
 const path = require("node:path")
 const stayAwake = require("stay-awake")
+require("./modules/switches")()
 
-const createWindow = () => {
+const createWindow = ({ isPopover, display }) => {
+    let width = 800
+    let height = 600
+
+    if (isPopover) {
+        const maxWidth = Math.floor(display.workAreaSize.width * MAX_POPOVER_SCREEN_RATIO_WIDTH)
+        const maxHeight = Math.floor(display.workAreaSize.height * MAX_POPOVER_SCREEN_RATIO_HEIGHT)
+        width = Math.min(width, maxWidth)
+        height = Math.min(height, maxHeight)
+    }
+
     const win = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width,
+        height,
         webPreferences: {
             devTools: DEV_TOOLS_ENABLED,
             preload: path.join(__dirname, 'preload.js'),
         },
-        skipTaskbar: true,
-        show: false,
-        frame: false,
-        resizable: false,
-        maximizable: false,
+        skipTaskbar: isPopover,
+        show: !isPopover,
+        frame: !isPopover,
+        resizable: !isPopover,
+        maximizable: !isPopover,
+        alwaysOnTop: isPopover,
     })
 
     win.loadFile('public/index.html')
@@ -26,113 +42,132 @@ const createWindow = () => {
     return win
 }
 
-const createTray = () => {
-    const tray = new Tray(path.join(__dirname, 'menuBarIconTemplate@2x.png'));
+let popoverWindow
+let normalWindow
 
-    const popoverWindow = createWindow();
+const createTray = () => {
+    const tray = new Tray(path.join(__dirname, 'menuBarIconTemplate@2x.png'))
 
     const getTrayPosition = (bounds, display) => {
-        const trayXCenter = bounds.x + bounds.width / 2;
-        const trayYCenter = bounds.y + bounds.height / 2;
+        const trayXCenter = bounds.x + bounds.width / 2
+        const trayYCenter = bounds.y + bounds.height / 2
 
-        const topDist = trayYCenter;
-        const bottomDist = display.bounds.height - trayYCenter;
-        const leftDist = trayXCenter;
-        const rightDist = display.bounds.width - trayXCenter;
+        const topDist = trayYCenter
+        const bottomDist = display.workAreaSize.height - trayYCenter
+        const leftDist = trayXCenter
+        const rightDist = display.workAreaSize.width - trayXCenter
 
-        const minDist = Math.min(topDist, bottomDist, leftDist, rightDist);
+        const minDist = Math.min(topDist, bottomDist, leftDist, rightDist)
 
-        if (minDist === topDist) return 'top';
-        if (minDist === bottomDist) return 'bottom';
-        if (minDist === leftDist) return 'left';
-        if (minDist === rightDist) return 'right';
-    };
+        if (minDist === topDist) return 'top'
+        if (minDist === bottomDist) return 'bottom'
+        if (minDist === leftDist) return 'left'
+        return 'right'
+    }
 
-    const positionPopoverWindow = (window, trayBounds, trayPosition) => {
-        const { height, width } = window.getBounds();
-        let x, y;
+    const positionPopoverWindow = (window, trayBounds, trayPosition, display) => {
+        const { height, width } = window.getBounds()
+        let x, y
 
         switch (trayPosition) {
             case 'top':
-                x = Math.round(trayBounds.x + (trayBounds.width / 2) - (width / 2));
-                y = Math.round(trayBounds.y + trayBounds.height);
-                break;
+                x = Math.round(trayBounds.x + (trayBounds.width / 2) - (width / 2))
+                y = trayBounds.y + trayBounds.height
+                break
             case 'bottom':
-                x = Math.round(trayBounds.x + (trayBounds.width / 2) - (width / 2));
-                y = Math.round(trayBounds.y - height);
-                break;
+                x = Math.round(trayBounds.x + (trayBounds.width / 2) - (width / 2))
+                y = trayBounds.y - height
+                break
             case 'left':
-                x = Math.round(trayBounds.x + trayBounds.width);
-                y = Math.round(trayBounds.y + (trayBounds.height / 2) - (height / 2));
-                break;
+                x = trayBounds.x + trayBounds.width
+                y = Math.round(trayBounds.y + (trayBounds.height / 2) - (height / 2))
+                break
             case 'right':
-                x = Math.round(trayBounds.x - width);
-                y = Math.round(trayBounds.y + (trayBounds.height / 2) - (height / 2));
-                break;
+                x = trayBounds.x - width
+                y = Math.round(trayBounds.y + (trayBounds.height / 2) - (height / 2))
+                break
         }
 
-        window.setBounds({ x, y, width, height });
-    };
+        // Apply padding to three sides (not the tray side)
+        const minX = display.workArea.x + (trayPosition === 'left' ? 0 : SCREEN_PADDING)
+        const maxX = display.workArea.x + display.workArea.width - width - (trayPosition === 'right' ? 0 : SCREEN_PADDING)
+        const minY = display.workArea.y + (trayPosition === 'top' ? 0 : SCREEN_PADDING)
+        const maxY = display.workArea.y + display.workArea.height - height - (trayPosition === 'bottom' ? 0 : SCREEN_PADDING)
+
+        x = Math.max(minX, Math.min(x, maxX))
+        y = Math.max(minY, Math.min(y, maxY))
+
+        window.setBounds({ x, y, width, height })
+    }
 
     const toggleWindow = (bounds) => {
-        var bounds = bounds ?? tray.getBounds()
-
-        if (popoverWindow.isVisible()) {
-            popoverWindow.hide();
+        if (popoverWindow && popoverWindow.isVisible()) {
+            popoverWindow.hide()
         } else {
-            var bounds = bounds ?? tray.getBounds();
-            const display = screen.getDisplayMatching(bounds);
+            bounds = bounds ?? tray.getBounds()
+            const display = screen.getDisplayMatching(bounds)
 
-            const trayPosition = getTrayPosition(bounds, display);
-            positionPopoverWindow(popoverWindow, bounds, trayPosition);
+            if (!popoverWindow) {
+                popoverWindow = createWindow({ isPopover: true, display })
+            }
 
-            popoverWindow.show();
+            const trayPosition = getTrayPosition(bounds, display)
+            positionPopoverWindow(popoverWindow, bounds, trayPosition, display)
+
+            popoverWindow.show()
         }
-    };
+    }
 
     // Context menu
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Toggle', click: () => toggleWindow() },
         { type: 'separator' },
         { label: 'Quit', click: () => app.quit() }
-    ]);
+    ])
 
     tray.on('click', (event, bounds) => {
-        toggleWindow(bounds);
-    });
+        toggleWindow(bounds)
+    })
 
     tray.on('right-click', () => {
-        tray.popUpContextMenu(contextMenu);
-    });
+        tray.popUpContextMenu(contextMenu)
+    })
 
     // Hide the window when it loses focus
-    popoverWindow.on('blur', () => {
-        popoverWindow.hide();
-    });
+    if (popoverWindow) {
+        popoverWindow.on('blur', () => {
+            popoverWindow.hide()
+        })
+    }
 }
 
 app.whenReady().then(() => {
     ipcMain.handle('setStayAwake', (_, awake) => {
-        if (awake == true) {
-            stayAwake.prevent(function () { });
+        if (awake) {
+            stayAwake.prevent(() => {})
         } else {
-            stayAwake.allow(function () { });
+            stayAwake.allow(() => {})
         }
-    });
+    })
 
     ipcMain.handle('quit', () => {
-        app.quit();
-    });
+        app.quit()
+    })
     createTray()
 
-    if (process.platform == 'darwin') {
-        app.dock.hide()
-    }
+    app.on('activate', () => {
+        if (!normalWindow) {
+            normalWindow = createWindow({ isPopover: false })
+            normalWindow.on("close", () => {
+                normalWindow = null
+            })
+        }
+    })
 })
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
-        app.quit();
+        app.quit()
     }
 })
 

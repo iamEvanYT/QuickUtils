@@ -56,8 +56,13 @@ function createSwitch(name, callback) {
     container.appendChild(nameSpan);
     container.appendChild(label);
 
+    const switchId = encodeURIComponent(name);
+    window.switches.get(switchId).then((state) => {
+        input.checked = state;
+    });
     input.addEventListener('change', (event) => {
         callback(event.target.checked);
+        window.switches.set(switchId, event.target.checked)
     });
 
     return container;

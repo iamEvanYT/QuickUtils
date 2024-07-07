@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "electron-store": "^10.0.0",
     "stay-awake": "^0.0.3"
   },
   "devDependencies": {
